@@ -4,22 +4,15 @@
 
 - Tên nhóm: FWA
 - Lớp: L3A
-- Repo nhóm: `K5-L3A-DAY08-FWA-FromWorkflowsToAgents` 
-- URL repo, nhánh nộp, commit chốt:
+- Repo nhóm: `K5-L3A-DAY08-FWA-FromWorkflowsToAgents`
 
 ## Thành viên
 
-| STT | Họ tên | MSSV | Email | GitHub | Vai trò |
-| --: | ------ | ---- | ----- | ------ | ------- |
-|   1 | Đặng Thanh Hải | 2A202603570|      |       |Shape A `workflow.py`, tạo repo, merge PR, chạy `check_submission        |
-|   2 | Nguyễn Đăng Doanh | 2A202603597|      | doanhnguyen28  | Shape B `single.py` (ReAct ≤ 8 bước)     |
-|   3 | Hoàng Gia Khiêm | 2A202603540|      |       |Shape C `orchestrator.py`, handoff an toàn, rà secret/PII trong trace   |
-|   4 | Đoàn Văn Tú | 2A202603595|      |       |Crash suite, idempotency, policy test, benchmark, ADR, research card       |
-
-Gợi ý chia vai:
-
-- Nhóm 6 người: integration; workflow; single agent; orchestrator; ledger/policy/crash; eval/report.
-- Nhóm 4 người: workflow + integration; single; orchestrator + handoff; ledger + evaluation.
+| STT | Họ tên | MSSV | 
+| 1 | Đặng Thanh Hải | 2A202603570 | 
+| 2 | Nguyễn Đăng Doanh | 2A202603597 |
+| 3 | Hoàng Gia Khiêm | 2A202603540 |
+| 4 | Đoàn Văn Tú | 2A202603595 | 
 
 ## Bảng đóng góp
 
@@ -27,30 +20,9 @@ Gợi ý chia vai:
 
 | Người | Vai | Commit | Test đã thêm hoặc sửa |
 | --- | --- | --- | --- |
+| Đặng Thanh Hải (2A202603570) | TV1: Workflow + Integration | `a3409b4` | `src/tests/test_team_workflow.py` (trace, policy ticket, idempotency, T14) |
 | Nguyễn Đăng Doanh (2A202603597) | TV2: Single agent: `src/lab8/shapes/single.py`, `group_report.md` mục 3B và 5 | `8742c52` feat(single): ReAct agent tối đa 8 bước, chỉ dùng tool đọc; code tính quote, host ghi refund | `src/tests/test_team_single.py` (35 test: không tin số ngày trễ trong ticket, ≤ 8 bước, không chọn tool ghi, T14 truyền quote đầy đủ, trace không lộ secret/PII) |
+| Hoàng Gia Khiêm (2A202603540) | TV3: Orchestrator + Handoff | `c3eef95` | `src/tests/test_team_handoff.py` (handoff allowlist, trace/stdout an toàn, crash resume) |
+| Đoàn Văn Tú (2A202603595) | TV4: Ledger + Evaluation, benchmark và báo cáo đánh giá |  | `src/tests/test_team_policy.py` (21 test: approval, order cap, idempotency, T14, crash resume); `src/reports/benchmark.json` (280 trial, 4 shape × 14 claim × 5 seed) |
 
-## Cá nhân
 
-Mỗi thành viên đồng thời tạo một báo cáo riêng trong `report/` theo dạng:
-
-```text
-report/team/MSSV_HoTen.md
-```
-
-Ví dụ: `report/team/20241234_NguyenVanAn.md`.
-
-Sao chép mục dưới đây cho từng thành viên.
-
-## MSSV_HoTen
-
-### Phần việc phụ trách
-
--
-
-### Đóng góp cụ thể
-
--
-
-### Bằng chứng
-
--
