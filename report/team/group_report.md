@@ -16,12 +16,12 @@ Nhóm hiểu bài toán thế nào, chia việc ra sao, thứ tự làm bốn sh
 
 **Chia việc.** Nhóm 4 người theo gợi ý của đề:
 
-| Vai | Phụ trách |
+| Họ tên | Phụ trách |
 | --- | --- |
-| TV1 (nhóm trưởng) | Shape A `workflow.py`, tạo repo, merge PR, chạy `check_submission`, chốt commit |
-| TV2 | Shape B `single.py` (ReAct ≤ 8 bước) |
-| TV3 | Shape C `orchestrator.py`, handoff an toàn, rà secret/PII trong trace |
-| TV4 | Crash suite, idempotency, policy test, benchmark, ADR, research card |
+| Đặng Thanh Hải - 2A202603570 | Shape A `workflow.py`, tạo repo, merge PR, chạy `check_submission`, chốt commit |
+| Nguyễn Đăng Doanh - 2A202603597 | Shape B `single.py` (ReAct ≤ 8 bước) |
+| Hoàng Gia Khiêm - 2A202603540| Shape C `orchestrator.py`, handoff an toàn, rà secret/PII trong trace |
+| Đoàn Văn Tú - 2A202603595| Crash suite, idempotency, policy test, benchmark, ADR, research card |
 
 **Thứ tự.** Workflow được làm đầu tiên (CP2, 13:45–14:15) và push sớm vì nó là khung chung cho B và C: đọc claim qua view allowlist → tra đơn theo principal → `compute_compensation` → `durability.issue_refund` với quote đầy đủ và `crash_at` → `finish()`. TV2 và TV3 copy phần tính quote, gọi host và ghi trace từ workflow vào file của mình (grader chỉ lấy ba file shape nên không dùng module helper chung). Swarm có sẵn chỉ dùng làm đối chứng cost và variance. Mỗi người làm trên branch riêng, merge vào `main` qua PR; TV1 chạy `python -m pytest -q` sau mỗi lần merge để giữ cổng host xanh.
 
@@ -51,11 +51,24 @@ Các bước Python cố định, không có nhánh nào do model quyết:
 
 ### 3B. Single agent (`src/lab8/shapes/single.py`)
 
-*(TV2 điền: vòng `run_react` tối đa 8 bước, `decide` chỉ chọn tool đọc, kiểm `is_current` khi dùng `get_clause`, code tính quote và gọi `issue_refund` sau vòng lặp, cách đếm model call vào Budget, các event trace.)*
+Một agent chạy `lab8.runtime.run_react` với `max_steps=8`. Hàm `decide` chỉ được chọn tool đọc, theo thứ tự `get_claim_view` → `lookup_order` → `lookup_refund_history`, rồi trả `final`:
+
+| Agent thấy | Agent quyết (dừng vòng lặp) |
+| --- | --- |
+| `get_claim_view` không có claim | `failed`, `proposal_amount = 0` |
+| Dòng claim không có `order_id` | `needs_info`. Không đoán mã đơn từ ticket |
+| `lookup_order` không visible (không thấy đơn hoặc sai chủ) | `escalated`, chỉ trả `reason` |
+| Đã có order view và lịch sử hoàn tiền | `ready_to_quote`, chuyển cho code |
+
+Vì `run_react` chỉ đưa lại cho `decide` kết quả của tool vừa gọi, `decide` tự giữ một `memory` chứa kết quả các bước trước.
+
+**Ranh giới code / model.** Model chỉ quyết tool đọc nào gọi tiếp và khi nào dừng. Nếu model chọn tool ghi, `dispatch` ném `ToolRejected` và shape trả `failed` thay vì ném exception. Mỗi bước có một lời gọi MockLLM (`purpose="react"`) để Budget tính cost của agent, cộng một lời gọi `draft` ở cuối để soạn câu trả lời. Prompt không chứa ticket, order row hay số tiền. Sau vòng lặp, code tính quote bằng `compute_compensation` từ order row trong DB. Hàm này chỉ dùng policy `is_current` có `effective_date <= as_of`. Agent không gọi `get_clause`, nên không bao giờ trả tiền theo policy cũ hay policy tương lai mà ticket trích dẫn. Sau đó code gọi `durability.issue_refund` với quote đầy đủ và `crash_at`. Agent có đọc `lookup_refund_history` nhưng không dùng số này để trừ quote, vì host đã tự áp trần theo đơn (T14: `proposal_amount` 150.000, ledger 120.000). Từ bước quote trở đi, single xử lý giống hệt workflow (map `denied` / `failed` / `resolved`, không nuốt `InjectedCrash`). Vì vậy khác biệt giữa A và B khi benchmark chỉ đến từ phần đọc do agent điều khiển và số model call thêm vào.
+
+**Trace.** Các event: `react_step` (số bước, tên tool, trạng thái dừng), `refund_history` (chỉ `refund_count`, `refunded_vnd`), `quote` (`amount_vnd`, `reason`, `clause_ids`), `issue_refund` (`ok`, `reason`, `conflict`), `crash` (nếu có), `decision` (`status`, `proposal_amount`, `reason`). Cố ý **không** ghi: ticket, kết quả thô của tool, `memory`, nguyên claim row hay order row, `parent_secret`, `raw_headers`, SĐT, địa chỉ, tên hàng, `internal_note`. `src/tests/test_team_single.py` kiểm tra trace của cả 14 claim public, kiểm tra agent không vượt 8 bước, không chọn tool ghi, không tin số ngày trễ trong ticket (C-002, 5 seed), và vẫn truyền quote đầy đủ ở T14.
 
 ### 3C. Orchestrator (`src/lab8/shapes/orchestrator.py`)
 
-*(TV3 điền: `make_handoff` với allowlist field và tool chỉ đọc, investigator chạy gì, orchestrator tính quote và gọi host thế nào, trace chỉ ghi handoff đã sanitize, vì sao tóm tắt bằng LLM không tính là redaction.)*
+
 
 ## 4. Kết quả
 
@@ -68,6 +81,10 @@ Quyết định kiến trúc và lý do: xem `report/team/decision_adr.md`. Phi�
 ## 5. Khó khăn và cách xử lý
 
 Lỗi gặp phải (kèm lệnh, output hoặc ảnh chụp) và cách nhóm xử lý.
+
+
+- *`run_react` chỉ trả kết quả của tool vừa gọi.* Sau mỗi bước, `seen` chỉ có `last_tool` / `last_result`, nên ở bước thứ ba agent không còn thấy dòng claim. Cách xử lý: `decide` là closure giữ một dict `memory` theo tên tool.
+- *Lọc test student theo shape bị khớp nhầm.* `pytest -m student -k single` chọn cả `test_public_single_run_cases[...-workflow]` vì tên test chứa chữ `single`, nên ra 120 failed. Cách xử lý: lọc theo tham số shape bằng `-k "single]"`, ra đúng 62 test.
 
 ...
 
