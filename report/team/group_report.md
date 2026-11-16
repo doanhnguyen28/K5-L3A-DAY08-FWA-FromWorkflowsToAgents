@@ -6,11 +6,11 @@ Tối đa 5 trang ngoài phụ lục. Số liệu lấy từ file trong `src/rep
 
 - Tên nhóm: FWA
 - Thành viên:
-| STT | Họ tên | MSSV | 
-| 1 | Đặng Thanh Hải | 2A202603570 | 
+| STT | Họ tên | MSSV |
+| 1 | Đặng Thanh Hải | 2A202603570 |
 | 2 | Nguyễn Đăng Doanh | 2A202603597 |
 | 3 | Hoàng Gia Khiêm | 2A202603540 |
-| 4 | Đoàn Văn Tú | 2A202603595 | 
+| 4 | Đoàn Văn Tú | 2A202603595 |
 
 ## 2. Mục tiêu và cách tiếp cận
 
@@ -72,7 +72,25 @@ Vì `run_react` chỉ đưa lại cho `decide` kết quả của tool vừa gọ
 
 ### 3C. Orchestrator (`src/lab8/shapes/orchestrator.py`)
 
-Orchestrator tạo handoff qua `make_handoff` với task cố định, facts được lọc theo allowlist và ba tool chỉ đọc: `get_claim_view`, `lookup_order`, `lookup_refund_history`. Investigator không nhận ticket, `parent_secret`, raw headers hay claim row; nó trả về order view giới hạn field và lịch sử refund. Orchestrator tính quote bằng code rồi gọi `issue_refund` với quote đầy đủ và `crash_at`. Host kiểm approval, trần theo đơn và idempotency; shape ánh xạ kết quả thành `denied`, `failed` hoặc `resolved`. Trace chỉ ghi handoff đã sanitize, không ghi parent context. `test_team_handoff.py` kiểm allowlist, loại trừ tool ghi, trace/stdout không lộ secret/PII và resume an toàn sau crash.
+Orchestrator chia việc: **investigator chỉ đọc**, còn **orchestrator (code) quyết tiền và gọi host**. Worker không có write registry, không được giao `compute_compensation`, và không thấy parent context.
+
+| Bước | Ai làm | Đọc / gọi | Quyết định (bởi code) |
+| --- | --- | --- | --- |
+| 1 | Orchestrator | `get_claim_view` (allowlist, không `SELECT *`) | Không có claim → `failed`; thiếu `order_id` → `needs_info`, không ghi ledger |
+| 2 | Orchestrator | `make_handoff(task="investigate_order_and_refund_history", facts={}, allowed_tools=[get_claim_view, lookup_order, lookup_refund_history])` | `make_handoff` từ chối mọi tool ngoài `READONLY_TOOLS`; lỗi handoff → `failed` |
+| 3 | Investigator | `run_readonly_investigators(conn, budget, handoff, principal_id)`, dispatch với `worker=True` | Đơn không thấy hoặc sai chủ → `escalated` |
+| 4 | Orchestrator | `compute_compensation(order)` từ order view của investigator | Quote = 0 → `denied`, **không** gọi `issue_refund` |
+| 5 | Orchestrator | `durability.issue_refund(conn, claim_id, <quote đầy đủ>, crash_at=crash_at)` | Host từ chối → `denied` (`proposal_amount` = quote); `conflict` → `failed`; còn lại → `resolved` |
+
+**Handoff được sanitize thế nào.** Handoff được dựng bằng `lab8.handoff.make_handoff`, không viết dict tay. Hàm này giữ đúng 8 field trong `ALLOWED_FIELDS` và chỉ giữ facts thuộc `FACT_KEYS` (`delay_days`, `damage_verified`, `carrier`, `order_status`, `shipping_fee_vnd`, `paid_vnd`). Sau đó `sanitize` còn chặn lần cuối: còn chuỗi `CANARY_SECRET_`, `parent_secret`, `raw_headers` hay có write tool thì ném `HandoffError`. Lúc giao việc, facts để trống: investigator chỉ cần `claim_id` và tự tra qua tool đọc. Ticket, `principal_id`, `parent_secret` và header không bao giờ được đưa vào handoff. Kết quả investigator trả về cũng đi qua lại `make_handoff` (lọc `FACT_KEYS`) trước khi ghi trace. `test_handoff_facts_drop_parent_secret_and_raw_claim_row` kiểm tra cả trường hợp xấu nhất: truyền nguyên claim row + order row vào facts thì cũng chỉ còn các key allowlist.
+
+**Vì sao tóm tắt bằng LLM không tính là redaction.** Model không có cam kết nào về việc bỏ field: nó có thể chép nguyên canary, SĐT hay câu lệnh trong ticket vào bản tóm tắt, và kết quả thay đổi theo seed. Không test nào chứng minh được một bản tóm tắt luôn sạch. Allowlist trong code thì xác định, kiểm được bằng test, và sai một lần là sai ở mọi lần nên phát hiện được. Vì vậy MockLLM của orchestrator chỉ nhận tên task (`purpose="plan"`) và status (`purpose="draft"`). Nó không thấy ticket, order row hay số tiền, và output của nó không được dùng cho quyết định nào.
+
+**Tiền và crash.** Giống workflow: quote do `compute_compensation` tính từ order view. Quote được truyền **đầy đủ** cho host, host tự trừ phần đã hoàn (T13, T14). `lookup_refund_history` chỉ để ghi trace (`refund_count`, `refunded_vnd`), không dùng để tự trừ. `InjectedCrash` không bị bắt: shape ghi event `crash`, ghi trace, rồi `raise`. Khi resume, idempotency key `refund:{claim_id}` giữ đúng một refund.
+
+**Trace.** Các event: `claim` (`found`, `has_order_id`), `handoff` (bản đã sanitize), `investigator_report` (facts qua `FACT_KEYS`, `refund_count`, `refunded_vnd`), `quote`, `issue_refund` (`ok`, `reason`, `conflict`), `crash` (nếu có), `decision`. Trace không ghi parent context, ticket hay order row thô.
+
+**Rà an toàn cho cả 3 shape (CP4).** `src/tests/test_team_handoff.py` (66 test) quét mọi file `<run_id>*`, stdout/stderr và `RunResult` của workflow, single, orchestrator trên 14 claim public, và kiểm tra bằng AST rằng 3 file shape không có `print()`. Ngoài ra nhóm rà tay bằng PowerShell sau khi chạy `pytest -m student` (248 passed): quét 186 file trace của 3 shape, **0 file** chứa `CANARY_SECRET`, `parent_secret`, `raw_headers`, `internal_note`, SĐT, địa chỉ hay tên hàng. Tự kiểm tra `-k orchestrator` ra **62 passed**.
 
 
 ## 4. Kết quả
