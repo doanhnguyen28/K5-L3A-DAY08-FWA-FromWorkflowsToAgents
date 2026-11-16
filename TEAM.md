@@ -2,17 +2,19 @@
 
 ## Thông tin nhóm
 
-- Tên nhóm:
+- Tên nhóm: FWA
 - Lớp: L3A
-- Repo nhóm: `K5-L3A-DAY08-TenNhom-FromWorkflowsToAgents` (xem [SUBMISSION.md](SUBMISSION.md))
+- Repo nhóm: `K5-L3A-DAY08-FWA-FromWorkflowsToAgents` 
 - URL repo, nhánh nộp, commit chốt:
 
 ## Thành viên
 
 | STT | Họ tên | MSSV | Email | GitHub | Vai trò |
 | --: | ------ | ---- | ----- | ------ | ------- |
-|   1 |        |      |       |        |         |
-|   2 |        |      |       |        |         |
+|   1 | Đặng Thanh Hải | 2A202603570|      |       |Shape A `workflow.py`, tạo repo, merge PR, chạy `check_submission        |
+|   2 | Nguyễn Đăng Doanh | 2A202603597|      | doanhnguyen28  | Shape B `single.py` (ReAct ≤ 8 bước)     |
+|   3 | Hoàng Gia Khiêm | 2A202603540|      |       |Shape C `orchestrator.py`, handoff an toàn, rà secret/PII trong trace   |
+|   4 | Đoàn Văn Tú | 2A202603595|      |       |Crash suite, idempotency, policy test, benchmark, ADR, research card       |
 
 Gợi ý chia vai:
 
@@ -25,7 +27,7 @@ Gợi ý chia vai:
 
 | Người | Vai | Commit | Test đã thêm hoặc sửa |
 | --- | --- | --- | --- |
-| | | | |
+| Nguyễn Đăng Doanh (2A202603597) | TV2: Single agent: `src/lab8/shapes/single.py`, `group_report.md` mục 3B và 5 | `8742c52` feat(single): ReAct agent tối đa 8 bước, chỉ dùng tool đọc; code tính quote, host ghi refund | `src/tests/test_team_single.py` (35 test: không tin số ngày trễ trong ticket, ≤ 8 bước, không chọn tool ghi, T14 truyền quote đầy đủ, trace không lộ secret/PII) |
 
 ## Cá nhân
 
