@@ -10,10 +10,10 @@
 
 | STT | Họ tên | MSSV | Email | GitHub | Vai trò |
 | --: | ------ | ---- | ----- | ------ | ------- |
-| 1 | Đặng Thanh Hải | 2A202603570 | HaiDang0502 | TV1: Workflow + Integration |
-| 2 | Nguyễn Đăng Doanh | 2A202603597 | doanhnguyen28 |TV2: Single agent |
-| 3 | Hoàng Gia Khiêm | 2A202603540 | khiemhg | TV3: Orchestrator + Handoff |
-| 4 | Đoàn Văn Tú | 2A202603595 | tu7749 | TV4: Ledger + Evaluation |
+| 1 | Đặng Thanh Hải | 2A202603570 | | HaiDang0502 | TV1: Workflow + Integration |
+| 2 | Nguyễn Đăng Doanh | 2A202603597 | | doanhnguyen28 |TV2: Single agent |
+| 3 | Hoàng Gia Khiêm | 2A202603540 | | khiemhg | TV3: Orchestrator + Handoff |
+| 4 | Đoàn Văn Tú | 2A202603595 | | tu7749 | TV4: Ledger + Evaluation |
 
 ## Bảng đóng góp
 
