@@ -2,10 +2,10 @@
 
 ## 1. Thông tin thành viên
 
-- Họ tên: <Họ tên>
-- MSSV: <MSSV>
+- Họ tên: Đặng Thanh Hải
+- MSSV: 2A202603570
 - Email: <email>
-- GitHub: <github username>
+- GitHub: HaiDang0502
 
 ## 2. Phần việc phụ trách
 
